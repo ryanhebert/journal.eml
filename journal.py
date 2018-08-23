@@ -34,7 +34,13 @@ def listdir(d):
 
 def journal_messages(path, address):
 
-    messages = listdir(path)
+    messages = []
+
+    for root, dirs, files in os.walk(".", topdown=False):
+        for f in files:
+            if f.endswith(".eml"):
+                messages.append([root, f])
+
     send_to = None
 
     if not isIP(address):
@@ -52,7 +58,9 @@ def journal_messages(path, address):
     count = 0
     smtp = smtplib.SMTP(str(address))
 
-    for eml in messages:
+    for m in messages:
+
+        eml = os.path.join(m[0], m[1])
 
         if not os.path.isdir(eml):
 
@@ -110,11 +118,12 @@ def journal_messages(path, address):
             response = smtp.sendmail(send_from, send_to, msg.as_string())
 
             if len(response) == 0:
-                if not os.path.exists('journaled'):
-                    os.makedirs('journaled')
-                pth, fn = os.path.split(eml)
+                newPath = 'journaled' + m[0][1:]
+                if not os.path.exists(newPath):
+                    os.makedirs(newPath)
+                #pth, fn = os.path.split(eml)
                 #print pth
-                shutil.move(eml, 'journaled')
+                shutil.move(eml, newPath)
 
     smtp.close()
 
