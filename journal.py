@@ -19,27 +19,16 @@ def isIP(addr):
     except socket.error:
         return False
 
-def listdir(d):
-
-    fileList = []
-    path = os.path.join(os.path.dirname(__file__), d)
-
-    if not os.path.isdir(path):
-        print d
-    else:
-        for item in os.listdir(d):
-            fileList.append(d + '\\' + item)
-
-    return fileList
-
 def journal_messages(path, address):
 
     messages = []
 
-    for root, dirs, files in os.walk(".", topdown=False):
-        for f in files:
-            if f.endswith(".eml"):
-                messages.append([root, f])
+    for root, dirs, files in os.walk(".", topdown=True):
+        if path in root:
+            for f in files:
+                if f.endswith(".eml"):
+                    #print os.path.join(root, f)
+                    messages.append([root, f])
 
     send_to = None
 
@@ -114,16 +103,19 @@ def journal_messages(path, address):
             msg.attach(MIMEText(text))
             msg.attach(MIMEText(archivedText))
 
-            print eml
+            print msg['To']
             response = smtp.sendmail(send_from, send_to, msg.as_string())
 
             if len(response) == 0:
-                newPath = 'journaled' + m[0][1:]
+                newPath = 'journaled' + m[0][2+len(path):]
                 if not os.path.exists(newPath):
                     os.makedirs(newPath)
-                #pth, fn = os.path.split(eml)
-                #print pth
-                shutil.move(eml, newPath)
+
+                shutil.move(eml, newPath) #move archived files to 'journaled' directory
+
+                pth, fn = os.path.split(eml) #clean up empty directories
+                if not os.listdir(pth):
+                    os.rmdir(pth)
 
     smtp.close()
 
